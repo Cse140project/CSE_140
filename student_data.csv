@@ -1,0 +1,21 @@
+school,area,gender,caste,standard,dropout
+School A,Urban,Male,General,5,0
+School B,Rural,Female,OBC,7,1
+School C,Semi-Urban,Male,SC,9,0
+School A,Urban,Female,ST,4,1
+School A,Rural,Male,General,6,0
+School B,Urban,Female,SC,8,1
+School C,Rural,Male,OBC,3,0
+School B,Semi-Urban,Female,General,2,0
+School A,Urban,Male,ST,1,1
+School C,Rural,Female,OBC,10,0
+School B,Urban,Male,SC,6,1
+School A,Semi-Urban,Female,General,7,0
+School C,Urban,Male,OBC,5,1
+School B,Rural,Female,ST,9,0
+School A,Urban,Male,SC,8,1
+School C,Semi-Urban,Female,General,4,0
+School A,Rural,Female,OBC,3,0
+School B,Urban,Male,General,2,1
+School C,Urban,Female,SC,1,0
+School A,Semi-Urban,Male,ST,10,1
