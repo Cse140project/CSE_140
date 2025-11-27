@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediction Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0093E9;
+            background: linear-gradient(160deg, #0093E9 0%, #80D0C7 100%);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 70%;
+            margin: 50px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .value {
+            font-size: 20px;
+            margin: 6px 0;
+            font-weight: bold;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+            margin: 15px;
+            display: inline-block;
+        }
+
+        .btn-blue {
+            background: #007bff;
+        }
+
+        .btn-gray {
+            background: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Prediction Result</h1>
+
+    <!-- 🔥 THIS SHOWS THE PREDICTION -->
+    <h2 style="color: blue; margin-top: 10px;">{{ prediction }}</h2>
+
+    <p class="label">School:</p>
+    <p class="value">{{ school }}</p>
+
+    <p class="label">Area:</p>
+    <p class="value">{{ area }}</p>
+
+    <p class="label">Gender:</p>
+    <p class="value">{{ gender }}</p>
+
+    <p class="label">Caste:</p>
+    <p class="value">{{ caste }}</p>
+
+    <p class="label">Standard:</p>
+    <p class="value">{{ standard }}</p>
+
+    <br><br>
+
+    <a class="btn btn-blue" href="/predict_pages">Predict Another</a>
+    <a class="btn btn-gray" href="/dashboard_pages">Back to Dashboard</a>
+
+</div>
+
+</body>
+</html>

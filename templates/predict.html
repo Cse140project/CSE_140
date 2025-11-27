@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Predict Student Dropout</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg1: #4facfe;
+      --bg2: #00f2fe;
+      --card: #ffffff;
+      --accent: #2575fc;
+      --muted: #666;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      color:#222;
+    }
+
+    .card{
+      width:100%;
+      max-width:520px;
+      background:var(--card);
+      border-radius:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.15);
+      padding:28px;
+      backdrop-filter: blur(4px);
+    }
+
+    h1{ margin:0 0 8px 0; font-size:22px; color:#111; }
+    p.lead{ margin:0 0 18px 0; color:var(--muted); }
+
+    label{
+      display:block;
+      font-size:13px;
+      margin-bottom:6px;
+      color:#333;
+      font-weight:600;
+    }
+
+    select,input{
+      width:100%;
+      padding:11px 12px;
+      border-radius:8px;
+      border:1px solid #e6e9ee;
+      font-size:15px;
+      margin-bottom:14px;
+      outline:none;
+    }
+
+    .row { display:flex; gap:12px; }
+    .col { flex:1; }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:6px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    button.primary{
+      background: linear-gradient(90deg,var(--accent), #1f6be0);
+      color:#fff;
+      border:none;
+      padding:12px 18px;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 6px 18px rgba(37,117,252,0.25);
+    }
+
+    button.ghost{
+      background:transparent;
+      color:var(--accent);
+      border:1px solid rgba(37,117,252,0.12);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+    }
+
+    .result{
+      margin-top:18px;
+      padding:12px;
+      border-radius:10px;
+      background:linear-gradient(90deg, rgba(37,117,252,0.08), rgba(37,117,252,0.03));
+      color:#0b3a66;
+      font-weight:700;
+      text-align:center;
+    }
+
+    .small{
+      font-size:13px; color:var(--muted); margin-top:8px; text-align:center;
+    }
+
+    @media (max-width:520px){
+      .card{ padding:18px; }
+      .row{ flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Student Dropout Prediction</h1>
+    <p class="lead">Enter student details (school / area / gender / caste / standard) and click Predict.</p>
+
+    <form method="POST" action="/predict">
+      <!-- SCHOOL -->
+      <label for="school">School</label>
+      <select id="school" name="school" required>
+        <option value="">Select school</option>
+        <option>School A</option>
+        <option>School B</option>
+        <option>School C</option>
+      </select>
+
+      <!-- AREA -->
+      <label for="area">Area</label>
+      <select id="area" name="area" required>
+        <option value="">Select area</option>
+        <option>Urban</option>
+        <option>Rural</option>
+        <option>Semi-Urban</option>
+      </select>
+
+      <div class="row">
+        <div class="col">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="">Select gender</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="col">
+          <label for="caste">Caste</label>
+          <select id="caste" name="caste" required>
+            <option value="">Select caste</option>
+            <option>General</option>
+            <option>OBC</option>
+            <option>SC</option>
+            <option>ST</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="standard">Standard (class)</label>
+      <select id="standard" name="standard" required>
+        <option value="">Select standard</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8</option>
+        <option>9</option><option>10</option>
+      </select>
+
+      <div class="actions">
+        <button type="submit" class="primary">Predict</button>
+        <a href="/dashboard"><button type="button" class="ghost">Back to Dashboard</button></a>
+      </div>
+    </form>
+
+    {% if result %}
+      <div class="result">{{ result }}</div>
+    {% endif %}
+
+    <p class="small">Prediction uses the trained model. For demo purposes results are illustrative.</p>
+  </div>
+
+</body>
+</html>

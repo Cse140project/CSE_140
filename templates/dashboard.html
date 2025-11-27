@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+
+    <style>
+        body { font-family:Arial; background:#eef2f3; text-align:center; padding-top:60px; }
+        .btn {
+            display:block; margin:20px auto; padding:15px 40px; font-size:20px;
+            border-radius:8px; text-decoration:none; color:white; width:280px;
+        }
+        .btn-green { background:#28a745; }
+        .btn-red { background:#d9534f; }
+    </style>
+
+</head>
+<body>
+
+<h1>Welcome to Student Dropout Dashboard</h1>
+
+<a class="btn btn-green" href="/predict_pages">Predict Student Dropout</a>
+
+{% if session['user'] == 'admin' %}
+    <a class="btn btn-green" href="/graphs_pages">View Graph Dashboard</a>
+{% endif %}
+
+<a class="btn btn-red" href="/logout_pages">Logout</a>
+
+</body>
+</html>

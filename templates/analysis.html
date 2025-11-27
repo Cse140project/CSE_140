@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Analysis</title>
+</head>
+<body>
+
+<div class="card">
+    <h2>Analysis Filters</h2>
+
+    <form method="POST" action="/analysis">
+
+        <label>Area</label>
+        <select name="area">
+            <option value="">Any</option>
+            <option value="0">Rural</option>
+            <option value="1">Urban</option>
+        </select>
+
+        <label>Gender</label>
+        <select name="gender">
+            <option value="">Any</option>
+            <option value="0">Female</option>
+            <option value="1">Male</option>
+        </select>
+
+        <label>Caste</label>
+        <select name="caste">
+            <option value="">Any</option>
+            <option value="0">SC</option>
+            <option value="1">ST</option>
+            <option value="2">OBC</option>
+            <option value="3">General</option>
+        </select>
+
+        <button type="submit">Show Analysis</button>
+    </form>
+
+    {% if result %}
+        <p style="margin-top:20px;font-size:18px;">Total Records: {{ result }}</p>
+    {% endif %}
+</div>
+
+</body>
+</html>
