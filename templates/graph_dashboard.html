@@ -1,88 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8" />
     <title>Graphs Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
-        body {
-            background: #0d1525;
-            font-family: Arial, sans-serif;
-            color: white;
-            padding: 30px;
-            margin: 0;
+        :root{
+            --bg: #0d1525;
+            --card: #0f2136;
+            --muted: #9fb1c9;
+            --accent: #1d4ed8;
+            --glass: rgba(255,255,255,0.03);
+            --radius: 14px;
         }
 
-        h1 {
-            text-align: left;
-            margin-bottom: 30px;
-            font-size: 32px;
-            font-weight: 700;
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            min-height:100vh;
+            background:linear-gradient(180deg,var(--bg),#071126 80%);
+            color:#e6f0ff;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            padding:28px;
         }
+
+        header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+        header h1 { margin:0; font-size:28px; font-weight:800; }
+        header .subtitle { color:var(--muted); font-weight:600; font-size:14px; }
 
         .grid {
-            display: grid;
+            display:grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            padding: 10px;
+            gap:22px;
+            align-items:start;
         }
 
         .card {
-            background: #111d2f;
-            padding: 20px;
-            border-radius: 14px;
-            box-shadow: 0px 4px 18px rgba(0,0,0,0.4);
-            text-align: center;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius: var(--radius);
+            padding:14px;
+            box-shadow: 0 12px 36px rgba(2,6,23,0.35);
+            border: 1px solid var(--glass);
+            text-align:center;
+            min-height:220px;
+            display:flex;
+            flex-direction:column;
+            justify-content:flex-start;
+        }
+
+        .card h2 {
+            margin:0 0 12px 0;
+            font-size:16px;
+            color:#fff;
         }
 
         .card img {
-            width: 100%;
-            border-radius: 10px;
+            width:100%;
+            max-height:260px;
+            object-fit:contain;
+            border-radius:10px;
+            background: rgba(255,255,255,0.01);
+            border:1px solid rgba(255,255,255,0.02);
+        }
+
+        .summary {
+            margin-top:10px;
+            color:var(--muted);
+            font-size:14px;
+            font-weight:700;
+        }
+
+        .controls {
+            margin-top:22px;
+            display:flex;
+            gap:10px;
+            align-items:center;
+            justify-content:space-between;
+            flex-wrap:wrap;
         }
 
         .btn {
-            display: inline-block;
-            margin-top: 25px;
-            background: #1d4ed8;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            text-decoration: none;
-            font-size: 18px;
+            display:inline-block;
+            padding:10px 16px;
+            border-radius:10px;
+            background:var(--accent);
+            color:white;
+            text-decoration:none;
+            font-weight:800;
+            border:none;
+            cursor:pointer;
+            box-shadow:0 10px 30px rgba(29,78,216,0.12);
         }
 
-        .btn:hover {
-            background: #4361ee;
+        .btn.ghost {
+            background:transparent;
+            color:var(--muted);
+            border:1px solid rgba(255,255,255,0.03);
+            box-shadow:none;
+            font-weight:700;
+        }
+
+        .note {
+            color:var(--muted);
+            font-size:13px;
+        }
+
+        /* responsive */
+        @media (max-width:1100px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width:720px) {
+            header { flex-direction:column; align-items:flex-start; gap:8px; }
+            .grid { grid-template-columns: 1fr; }
+            .controls { flex-direction:column; align-items:stretch; }
+            .btn { width:100%; text-align:center; }
         }
     </style>
 </head>
 <body>
 
-<h1>📊 Graph Dashboard</h1>
-
-<div class="grid">
-
-    <div class="card">
-        <h2>School-wise Dropout Rate</h2>
-        <img src="{{ url_for('static', filename='graphs/school.png') }}" alt="School Chart">
+<header>
+    <div>
+        <h1>📊 Graph Dashboard</h1>
+        <div class="subtitle">Visual trends from the active dataset (uploaded or default)</div>
     </div>
 
-    <div class="card">
-        <h2>Area-wise Dropout Rate</h2>
-        <img src="{{ url_for('static', filename='graphs/area.png') }}" alt="Area Chart">
+    <div class="controls">
+        <a class="btn" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        <a class="btn ghost" href="{{ url_for('upload_dataset') }}">Upload / Change Dataset</a>
     </div>
+</header>
 
-    <div class="card">
-        <h2>Gender-wise Dropout Rate</h2>
-        <img src="{{ url_for('static', filename='graphs/gender.png') }}" alt="Gender Chart">
+{% if error %}
+  <div style="margin:18px 0;padding:14px;border-radius:12px;background:rgba(255,20,20,0.06);color:#ffb4b4;font-weight:700">
+    {{ error }}
+  </div>
+{% endif %}
+
+{% if images and images|length > 0 %}
+  <div class="grid" role="list">
+    {% for img in images %}
+      <article class="card" role="listitem" aria-labelledby="g-{{ loop.index }}">
+        <h2 id="g-{{ loop.index }}">{{ img.summary.split(':')[0] | default('Graph') }}</h2>
+        <img src="{{ url_for('static', filename=img.file) }}" alt="graph {{ loop.index }}">
+        <div class="summary">{{ img.summary }}</div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div style="margin-top:20px;padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.02)">
+    <p class="note">No graphs available. Make sure your dataset contains a column named <code>dropout</code> (0/1) and columns such as <code>school</code>, <code>area</code>, <code>gender</code>, <code>caste</code>, <code>standard</code>. You can upload a dataset from the Upload page and then come back here.</p>
+    <div style="margin-top:12px">
+      <a class="btn" href="{{ url_for('upload_dataset') }}">Upload Dataset</a>
+      <a class="btn ghost" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
     </div>
-
-    <div class="card">
-        <h2>Caste-wise Dropout Rate</h2>
-        <img src="{{ url_for('static', filename='graphs/caste.png') }}" alt="Caste Chart">
-    </div>
-
-</div>
-
-<a href="/dashboard" class="btn">Back</a>
+  </div>
+{% endif %}
 
 </body>
 </html>
