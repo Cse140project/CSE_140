@@ -1,232 +1,390 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+# app.py (cleaned & robust)
+import os
+import traceback
+from datetime import datetime
+
+from flask import (
+    Flask, render_template, request, redirect, session, url_for,
+    send_file, flash
+)
 import pandas as pd
 import pickle
-import os
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+# ---------------- CONFIG ----------------
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+LOGS_DIR = os.path.join(APP_ROOT, "logs")
+MODEL_DIR = os.path.join(APP_ROOT, "model")
+STATIC_GRAPH_DIR = os.path.join(APP_ROOT, "static", "graphs")
+UPLOADS_DIR = os.path.join(APP_ROOT, "data")
 
-# -------------------- LOAD MODEL --------------------
+os.makedirs(LOGS_DIR, exist_ok=True)
+os.makedirs(STATIC_GRAPH_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key")
+
+# ---------------- MODEL LOAD ----------------
 model = None
-model_path = os.path.join("model", "model.pkl")
+model_path = os.path.join(MODEL_DIR, "model.pkl")
 if os.path.exists(model_path):
     try:
         with open(model_path, "rb") as f:
             model = pickle.load(f)
         print("Loaded model:", model_path)
     except Exception as e:
-        print("Error loading model:", e)
-        model = None
+        print("Failed to load model:", e)
+        traceback.print_exc()
 else:
-    print("Warning: model file not found at", model_path)
-    model = None
+    print("Model not found at", model_path, "- predictions will be disabled until model.pkl is added")
 
-# -------------------- LOGIN PAGE --------------------
+# ---------------- HELPERS ----------------
+def read_csv_with_fallback(path):
+    """
+    Try reading CSV using a list of encodings to avoid utf-8 decode errors.
+    Raises the last exception if none work.
+    """
+    encodings = ["utf-8", "utf-8-sig", "cp1252", "latin1", "iso-8859-1"]
+    last_exc = None
+    for enc in encodings:
+        try:
+            return pd.read_csv(path, encoding=enc)
+        except Exception as e:
+            last_exc = e
+    raise last_exc
+
+def append_prediction_log(row: dict):
+    """
+    Append a prediction row to logs/predictions.csv. Try to also write an xlsx.
+    """
+    try:
+        csv_path = os.path.join(LOGS_DIR, "predictions.csv")
+        if not os.path.exists(csv_path):
+            pd.DataFrame([row]).to_csv(csv_path, index=False)
+        else:
+            pd.DataFrame([row]).to_csv(csv_path, mode="a", header=False, index=False)
+    except Exception as e:
+        print("Failed to write CSV log:", e)
+        traceback.print_exc()
+
+    # optional: create xlsx (requires openpyxl)
+    try:
+        csv_path = os.path.join(LOGS_DIR, "predictions.csv")
+        xlsx_path = os.path.join(LOGS_DIR, "predictions.xlsx")
+        if os.path.exists(csv_path):
+            df_all = pd.read_csv(csv_path)
+            df_all.to_excel(xlsx_path, index=False)
+    except Exception as e:
+        print("Failed to write XLSX log (openpyxl may be missing):", e)
+
+def allowed_upload(filename: str):
+    if not filename:
+        return False
+    fn = filename.lower()
+    return fn.endswith(".csv") or fn.endswith(".xls") or fn.endswith(".xlsx")
+
+def generate_graphs_from_df(df: pd.DataFrame):
+    """
+    Creates bar charts and returns a list of dicts: {'file': 'graphs/name.png', 'summary': '...'}
+    """
+    images = []
+    try:
+        if "dropout" not in df.columns:
+            return [], "Dataset missing 'dropout' column (expected 0/1)"
+        # ensure dropout numeric 0/1
+        df["dropout"] = pd.to_numeric(df["dropout"], errors="coerce").fillna(0).astype(int)
+
+        def make_bar(col, fname, title):
+            path = os.path.join(STATIC_GRAPH_DIR, fname)
+            plt.figure(figsize=(6,4))
+            grouped = df.groupby(col)["dropout"].mean().sort_values(ascending=False)
+            if grouped.empty:
+                plt.text(0.5, 0.5, "No data", ha="center")
+            else:
+                ax = grouped.plot(kind="bar")
+                ax.set_ylabel("Dropout rate (proportion)")
+                ax.set_xlabel(col.capitalize())
+                ax.set_ylim(0, 1)
+                plt.title(title)
+                for p in ax.patches:
+                    h = p.get_height()
+                    ax.annotate(f"{h:.2%}", (p.get_x() + p.get_width()/2, h), ha="center", va="bottom", fontsize=9)
+            plt.tight_layout()
+            plt.savefig(path)
+            plt.close()
+
+            if not grouped.empty:
+                top = grouped.idxmax()
+                top_val = grouped.max()
+                summary = f"Highest dropout: {top} — {top_val:.2%}"
+            else:
+                summary = "No data available"
+            return {"file": f"graphs/{fname}", "summary": summary}
+
+        candidates = [
+            ("school", "school.png", "School-wise Dropout Rate"),
+            ("area", "area.png", "Area-wise Dropout Rate"),
+            ("gender", "gender.png", "Gender-wise Dropout Rate"),
+            ("caste", "caste.png", "Caste-wise Dropout Rate"),
+            ("standard", "standard.png", "Standard-wise Dropout Rate"),
+        ]
+        for col, fname, title in candidates:
+            if col in df.columns:
+                images.append(make_bar(col, fname, title))
+
+        return images, None
+    except Exception as e:
+        print("Error generating graphs:", e)
+        traceback.print_exc()
+        return [], str(e)
+
+# ---------------- ROUTES ----------------
 @app.route("/")
 def login():
+    # if already logged in redirect to dashboard to avoid showing login again
+    if "user" in session:
+        return redirect(url_for("dashboard"))
     return render_template("login.html")
 
 @app.route("/login", methods=["POST"])
 def do_login():
     user = request.form.get("username", "").strip()
     pw = request.form.get("password", "").strip()
-
     if user == "admin" and pw == "admin":
         session["user"] = "admin"
-        return redirect("/dashboard")
-    else:
-        return render_template("login.html", error="Invalid Credentials")
+        return redirect(url_for("dashboard"))
+    return render_template("login.html", error="Invalid credentials")
 
-# -------------------- DASHBOARD --------------------
+@app.route("/logout_pages")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
-        return redirect("/")
+        return redirect(url_for("login"))
     return render_template("dashboard.html")
 
-# -------------------- PREDICT PAGE --------------------
+# ---------- Prediction routes ----------
 @app.route("/predict_pages")
 def predict_page():
     if "user" not in session:
-        return redirect("/")
+        return redirect(url_for("login"))
     return render_template("predict.html")
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    if "user" not in session:
-        return redirect("/")
-
-    if model is None:
-        return render_template("predict.html", error="Model not loaded. Train the model or place model/model.pkl")
-
-    # collect inputs
-    school = request.form.get("school", "").strip()
-    area = request.form.get("area", "").strip()
-    gender = request.form.get("gender", "").strip()
-    caste = request.form.get("caste", "").strip()
-    standard = request.form.get("standard", "").strip()
-
-    # Convert to DataFrame (IMPORTANT)
-    input_df = pd.DataFrame([{
-        "school": school,
-        "area": area,
-        "gender": gender,
-        "caste": caste,
-        "standard": standard
-    }])
-
     try:
-        # If model is a pipeline, it will accept the raw categorical df
-        prob = None
-        pred_label = model.predict(input_df)[0]
-        # try to get probability if available
-        if hasattr(model, "predict_proba"):
-            prob = model.predict_proba(input_df)[0][1]
+        if model is None:
+            return render_template("result.html",
+                                   prediction="Model not available",
+                                   probability="N/A",
+                                   school="", area="", gender="", caste="", standard="",
+                                   error="Model not loaded"), 500
+
+        school = request.form.get("school", "").strip()
+        area = request.form.get("area", "").strip()
+        gender = request.form.get("gender", "").strip()
+        caste = request.form.get("caste", "").strip()
+        standard = request.form.get("standard", "").strip()
+
+        input_df = pd.DataFrame([{
+            "school": school,
+            "area": area,
+            "gender": gender,
+            "caste": caste,
+            "standard": standard
+        }])
+
+        pred_raw = model.predict(input_df)[0]
+
+        probability = None
+        try:
+            if hasattr(model, "predict_proba"):
+                proba = model.predict_proba(input_df)
+                if proba.shape[1] >= 2:
+                    probability = float(proba[0, 1])
+                else:
+                    probability = float(proba[0, 0])
+        except Exception:
+            probability = None
+
+        prediction_label = "Likely to Dropout" if int(pred_raw) == 1 else "Not Likely to Dropout"
+
+        timestamp = datetime.utcnow().isoformat()
+        log_row = {
+            "timestamp": timestamp,
+            "school": school,
+            "area": area,
+            "gender": gender,
+            "caste": caste,
+            "standard": standard,
+            "prediction_raw": int(pred_raw),
+            "prediction_label": prediction_label,
+            "probability": probability
+        }
+        append_prediction_log(log_row)
+
+        context = {
+            "prediction": prediction_label,
+            "probability": f"{probability:.3f}" if probability is not None else "N/A",
+            "school": school,
+            "area": area,
+            "gender": gender,
+            "caste": caste,
+            "standard": standard
+        }
+        return render_template("result.html", **context)
     except Exception as e:
-        # return a helpful error so you can debug
-        return render_template("predict.html", error=f"Prediction error: {e}")
+        print("Exception on /predict:", e)
+        traceback.print_exc()
+        return render_template("result.html",
+                               prediction="Error",
+                               probability="N/A",
+                               school="", area="", gender="", caste="", standard="",
+                               error=str(e)), 500
 
-    prediction_text = "Likely to Dropout" if int(pred_label) == 1 else "Not Likely to Dropout"
-    prob_text = f"{round(prob*100,1)}%" if prob is not None else "N/A"
+# ---------- Upload dataset ----------
+@app.route("/upload_dataset", methods=["GET", "POST"])
+def upload_dataset():
+    if "user" not in session:
+        return redirect(url_for("login"))
 
-    # Send values to result.html
-    return render_template(
-        "result.html",
-        prediction=prediction_text,
-        probability=prob_text,
-        school=school,
-        area=area,
-        gender=gender,
-        caste=caste,
-        standard=standard
-    )
+    message = None
+    error = None
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            error = "No file uploaded"
+            return render_template("upload.html", error=error)
+        if not allowed_upload(file.filename):
+            error = "Only CSV or Excel files are allowed"
+            return render_template("upload.html", error=error)
 
-# -------------------- GRAPH DASHBOARD --------------------
+        filename = "uploaded_dataset" + os.path.splitext(file.filename)[1]
+        save_path = os.path.join(UPLOADS_DIR, filename)
+        try:
+            file.save(save_path)
+            try:
+                if filename.lower().endswith(".csv"):
+                    df = read_csv_with_fallback(save_path)
+                else:
+                    df = pd.read_excel(save_path)
+            except Exception as re:
+                error = f"Failed to read uploaded file: {re}"
+                print(error)
+                traceback.print_exc()
+                return render_template("upload.html", error=error)
+
+            images, gerr = generate_graphs_from_df(df)
+            if gerr:
+                error = gerr
+                return render_template("upload.html", error=error)
+            message = f"Uploaded and generated {len(images)} graphs"
+            return redirect(url_for("graphs_pages"))
+        except Exception as e:
+            error = f"Failed to save file: {e}"
+            print(error)
+            traceback.print_exc()
+            return render_template("upload.html", error=error)
+
+    return render_template("upload.html", message=message)
+
+# ---------- Graphs ----------
 @app.route("/graphs_pages")
 def graphs_pages():
     if "user" not in session:
-        return redirect("/")
+        return redirect(url_for("login"))
 
-    data_path = os.path.join("data", "student_data.csv")
-    if not os.path.exists(data_path):
-        # fall back to root CSV if user put it there
-        if os.path.exists("student_data.csv"):
-            data_path = "student_data.csv"
-        else:
-            return render_template("graph_dashboard.html", error=f"Dataset not found at {data_path}")
-
-    # Read CSV
-    try:
-        df = pd.read_csv(data_path)
-    except Exception as e:
-        return render_template("graph_dashboard.html", error=f"Could not read data file: {e}")
-
-    # Ensure dropout column numeric 0/1
-    if "dropout" in df.columns:
-        # handle Yes/No or text values
-        if df["dropout"].dtype == object:
-            df["dropout"] = df["dropout"].map({"Yes": 1, "No": 0}).fillna(df["dropout"])
-        df["dropout"] = pd.to_numeric(df["dropout"], errors="coerce").fillna(0)
-    else:
-        # If missing, create dummy 0 column (so plots will show 0s)
-        df["dropout"] = 0
-
-    graph_dir = os.path.join("static", "graphs")
-    os.makedirs(graph_dir, exist_ok=True)
-
-    def safe_plot_cat(column, filename, title, rotate_xticks=False, figsize=(8,4.2)):
-        """
-        Create bar chart of mean(dropout) grouped by `column`, save to static/graphs/filename.
-        Adds percent labels above bars and summary line with top-risk category inside title.
-        Returns a tuple (saved_bool, summary_text) so the template can display text if required.
-        """
-        if column not in df.columns:
-            return False, None
-
-        agg = df.groupby(column)["dropout"].mean().sort_values(ascending=False)
-        if agg.empty:
-            return False, None
-
-        # percent values for display
-        rates = (agg * 100).round(1)
-        labels = [str(x) for x in agg.index]
-
-        plt.figure(figsize=figsize)
-        ax = plt.gca()
-
-        bars = ax.bar(labels, rates)
-
-        # annotate each bar with percent
-        for bar, pct in zip(bars, rates):
-            h = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2, h + max(1, rates.max()*0.03), f"{pct:.0f}%", ha='center', va='bottom', fontsize=10, fontweight='600')
-
-        # summary: top label and value
-        top_idx = rates.idxmax() if hasattr(rates, "idxmax") else labels[0]
-        top_val = rates.max() if hasattr(rates, "max") else float(rates.iloc[0])
-        summary = f"Highest risk — {str(top_idx)} ({top_val:.0f}%)"
-
-        ax.set_title(f"{title}\n{summary}", fontsize=12, pad=14)
-        ax.set_ylabel("Dropout rate (%)")
-        if rotate_xticks:
-            plt.xticks(rotation=35, ha="right")
-
-        plt.ylim(0, max(rates.max() * 1.15, 10))
-        plt.tight_layout()
-
-        save_path = os.path.join(graph_dir, filename)
-        plt.savefig(save_path)
-        plt.close()
-        return True, summary
-
-    # Generate required plots
-    plots_info = {}
-
-    # school
-    s1, sum1 = safe_plot_cat("school", "school.png", "School-wise Dropout Rate", rotate_xticks=True)
-    plots_info["school"] = {"file": "graphs/school.png", "ok": s1, "summary": sum1}
-
-    # area
-    s2, sum2 = safe_plot_cat("area", "area.png", "Area-wise Dropout Rate", rotate_xticks=False)
-    plots_info["area"] = {"file": "graphs/area.png", "ok": s2, "summary": sum2}
-
-    # gender
-    s3, sum3 = safe_plot_cat("gender", "gender.png", "Gender-wise Dropout Rate", rotate_xticks=False)
-    plots_info["gender"] = {"file": "graphs/gender.png", "ok": s3, "summary": sum3}
-
-    # caste
-    s4, sum4 = safe_plot_cat("caste", "caste.png", "Caste-wise Dropout Rate", rotate_xticks=True)
-    plots_info["caste"] = {"file": "graphs/caste.png", "ok": s4, "summary": sum4}
-
-    # standard / age variants
-    s5 = False
-    sum5 = None
-    for col_name in ["standard", "age_group", "class", "age"]:
-        if col_name in df.columns:
-            ok, summ = safe_plot_cat(col_name, "standard.png", f"{col_name.replace('_', ' ').title()}-wise Dropout Rate", rotate_xticks=True)
-            s5 = ok
-            sum5 = summ
+    df = None
+    uploaded_csv = None
+    for candidate in ["uploaded_dataset.csv", "uploaded_dataset.xls", "uploaded_dataset.xlsx", "student_data.csv"]:
+        p = os.path.join(UPLOADS_DIR, candidate)
+        if os.path.exists(p):
+            uploaded_csv = p
             break
-    plots_info["standard"] = {"file": "graphs/standard.png", "ok": s5, "summary": sum5}
 
-    # Build images list (only include those actually created)
-    images = []
-    for key in ["school", "area", "gender", "caste", "standard"]:
-        info = plots_info.get(key)
-        if info and info["ok"]:
-            images.append({"file": info["file"], "summary": info["summary"]})
+    if uploaded_csv:
+        try:
+            if uploaded_csv.lower().endswith(".csv"):
+                df = read_csv_with_fallback(uploaded_csv)
+            else:
+                df = pd.read_excel(uploaded_csv)
+        except Exception as e:
+            print("Failed to read dataset:", e)
+            traceback.print_exc()
+            return render_template("graph_dashboard.html", images=[], error=f"Failed to read dataset: {e}")
+    else:
+        fallback = os.path.join(APP_ROOT, "student_data.csv")
+        if os.path.exists(fallback):
+            try:
+                df = read_csv_with_fallback(fallback)
+            except Exception as e:
+                print("Failed to read fallback dataset:", e)
+                traceback.print_exc()
+                return render_template("graph_dashboard.html", images=[], error=f"Failed to read dataset: {e}")
 
+    if df is None:
+        return render_template("graph_dashboard.html", images=[], error="No dataset found. Upload or add student_data.csv in project root.")
+
+    images, gerr = generate_graphs_from_df(df)
+    if gerr:
+        return render_template("graph_dashboard.html", images=images, error=gerr)
     return render_template("graph_dashboard.html", images=images)
 
-# -------------------- LOGOUT --------------------
-@app.route("/logout_pages")
-def logout():
-    session.clear()
-    return redirect("/")
+# ---------- History / Download ----------
+@app.route("/prediction_history")
+def prediction_history():
+    if "user" not in session:
+        return redirect(url_for("login"))
+    csv_path = os.path.join(LOGS_DIR, "predictions.csv")
+    logs = []
+    cols = []
+    if os.path.exists(csv_path):
+        try:
+            df = pd.read_csv(csv_path)
+            cols = list(df.columns)
+            logs = df.to_dict(orient="records")
+        except Exception as e:
+            print("Failed to read logs:", e)
+            traceback.print_exc()
+    return render_template("prediction_history.html", logs=logs, cols=cols)
 
-# -------------------- RUN --------------------
+@app.route("/download_logs/<fmt>")
+def download_logs(fmt):
+    if "user" not in session:
+        return redirect(url_for("login"))
+    csv_path = os.path.join(LOGS_DIR, "predictions.csv")
+    xlsx_path = os.path.join(LOGS_DIR, "predictions.xlsx")
+
+    if fmt == "csv":
+        if not os.path.exists(csv_path):
+            flash("No logs yet", "error")
+            return redirect(url_for("prediction_history"))
+        return send_file(csv_path, as_attachment=True, download_name="predictions.csv")
+    elif fmt == "xlsx":
+        if not os.path.exists(xlsx_path):
+            if os.path.exists(csv_path):
+                try:
+                    df = pd.read_csv(csv_path)
+                    df.to_excel(xlsx_path, index=False)
+                except Exception as e:
+                    print("Failed to create xlsx:", e)
+                    traceback.print_exc()
+                    flash("Failed to create xlsx (openpyxl required)", "error")
+                    return redirect(url_for("prediction_history"))
+            else:
+                flash("No logs yet", "error")
+                return redirect(url_for("prediction_history"))
+        return send_file(xlsx_path, as_attachment=True, download_name="predictions.xlsx")
+    else:
+        flash("Unsupported format", "error")
+        return redirect(url_for("prediction_history"))
+
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
