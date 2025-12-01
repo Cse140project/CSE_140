@@ -1,36 +1,323 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Dropout Analyzer — Landing</title>
+  <style>
+    :root{
+      --bg-dark: #061322;
+      --panel: #0c1726;
+      --card: #ffffff;
+      --muted: #9aa6bf;
+      --accent-1: #9f7aea;
+      --accent-2: #60a5fa;
+      --accent-blue: #3b82f6;
+      --mint: #eaf7f3;
+      --success: #10b981;
+      --container-max: 1200px;
+      --gap: 28px;
+      --right-width: 520px; /* medium right column */
+    }
 
-    <style>
-        body { background:#eef2f3; font-family:Arial; text-align:center; padding-top:70px; }
-        .box {
-            background:white; padding:30px; width:350px; margin:auto;
-            border-radius:10px; box-shadow:0px 0px 10px gray;
-        }
-        input { padding:10px; width:90%; margin:10px; font-size:18px; }
-        button { padding:10px 30px; font-size:18px; background:#007bff; color:white; border:none; }
-        .error { color:red; }
-    </style>
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      background:
+        radial-gradient(900px 380px at 8% 10%, rgba(96,165,250,0.02), transparent 8%),
+        linear-gradient(135deg, var(--bg-dark) 0%, #041226 40%, #021124 100%);
+      color: #e6eefc;
+      padding:36px;
+    }
 
+    /* page container */
+    .page {
+      width:100%;
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr var(--right-width);
+      gap: var(--gap);
+      align-items: start;
+    }
+
+    /* header (full width, spans both columns) */
+    .header {
+      grid-column: 1 / -1;
+      display:flex;
+      align-items:center;
+      gap:20px;
+      padding:28px;
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 12px 48px rgba(2,6,23,0.18);
+    }
+    .logo {
+      width:78px;height:78px;border-radius:14px;
+      background: linear-gradient(135deg,var(--accent-1),var(--accent-2));
+      display:flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;color:#fff;
+      flex-shrink:0; box-shadow: 0 12px 36px rgba(16,24,40,0.18);
+    }
+    .hdr-text { display:flex; flex-direction:column; gap:6px; }
+    .hdr-text h1{ margin:0; font-size:34px; font-weight:800; color:#f8fbff; letter-spacing:-0.4px; }
+    .hdr-text p{ margin:0; color:#cdd5e1; font-size:15px; max-width:880px; line-height:1.45; }
+
+    .hdr-actions { margin-left:auto; display:flex; gap:12px; align-items:center; }
+    .btn { padding:10px 16px; border-radius:12px; border:none; font-weight:700; cursor:pointer; }
+    .btn-ghost { background: rgba(255,255,255,0.03); color:#e6eefc; border:1px solid rgba(255,255,255,0.04); }
+    .btn-primary { background: linear-gradient(90deg,var(--accent-blue), #1e40af); color:#fff; box-shadow:0 10px 26px rgba(37,99,235,0.12); }
+
+    /* main content: left column */
+    .left {
+      padding:0;
+    }
+    .section {
+      background: transparent;
+      padding: 0;
+      margin-top: 8px;
+    }
+    .about-title { font-size:28px; margin: 18px 0 12px 0; color:#fff; font-weight:800; }
+    .bullets { color:#cdd5e1; font-size:15px; line-height:1.7; margin:0 0 10px 18px; }
+
+    /* feature cards row */
+    .features {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:16px;
+      margin-top:22px;
+      align-items:start;
+    }
+    .feature {
+      background: rgba(255,255,255,0.02);
+      border-radius:12px;
+      padding:18px;
+      min-height:120px;
+      box-shadow: 0 8px 30px rgba(3,8,24,0.12);
+      display:flex; gap:12px; align-items:flex-start;
+    }
+    .feature .icon {
+      width:48px;height:48px;border-radius:10px; display:flex;align-items:center;justify-content:center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      flex-shrink:0;
+    }
+    .feature h3{ margin:0 0 6px 0; font-size:16px; color:#fff }
+    .feature p{ margin:0; color:#cdd5e1; font-size:14px; line-height:1.45; }
+
+    /* right column: info cards stacked top and aligned */
+    .right {
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      align-self:start; /* ensures starts at same top as left */
+    }
+    .info {
+      background: rgba(255,255,255,0.02);
+      padding:22px;
+      border-radius:14px;
+      box-shadow: 0 12px 40px rgba(2,6,23,0.16);
+      color:#e6eefc;
+    }
+    .info h3{ margin:0 0 10px 0; color:#fff; font-size:18px; }
+    .info p, .info li{ color:#cdd5e1; line-height:1.6; font-size:14px; }
+
+    .decor {
+      position:absolute;
+      right:-48px;
+      bottom:-12px;
+      width:320px;height:200px;border-radius:48%;
+      background: linear-gradient(135deg, rgba(96,165,250,0.06), rgba(159,122,234,0.04));
+      filter: blur(12px);
+      pointer-events:none;
+      z-index:0;
+    }
+
+    /* modal */
+    .modal-backdrop { position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:4000; background: rgba(3,7,18,0.7); padding:20px; }
+    .modal { width:min(520px,96%); background: var(--card); padding:24px; border-radius:12px; box-shadow:0 30px 80px rgba(2,6,23,0.45); }
+    .modal h2{ margin:0 0 8px 0; color:#0b1220 }
+    .input { width:100%; padding:12px 14px; border-radius:8px; border:none; background:var(--mint); margin-bottom:12px; color:#08312a; box-shadow: inset 0 0 0 1px rgba(8,49,42,0.02); }
+
+    /* focus styles */
+    input:focus, button:focus { outline: 3px solid rgba(37,99,235,0.12); outline-offset:2px; }
+
+    /* responsive */
+    @media (max-width: 980px){
+      .page { grid-template-columns: 1fr; padding:18px; }
+      .right { order:3; }
+      .features { grid-template-columns: 1fr; }
+      .decor { display:none; }
+      .hdr-text h1 { font-size:22px }
+    }
+  </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Login</h2>
+  <div class="page">
+    <!-- Header spanning both columns -->
+    <header class="header" role="banner">
+      <div class="logo" aria-hidden="true">SD</div>
+      <div class="hdr-text">
+        <h1>Student Dropout Analyzer</h1>
+        <p>Quickly identify at-risk students and view clear visual summaries to support early intervention.</p>
+      </div>
 
-    <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="Enter Username" required>
-        <input type="password" name="password" placeholder="Enter Password" required>
+      <div class="hdr-actions" role="navigation" aria-label="Header actions">
+        <button class="btn btn-ghost" id="aboutBtn" type="button">About</button>
+        <button class="btn btn-primary" id="openLoginBtn" type="button">Login</button>
+      </div>
+    </header>
 
-        <button type="submit">Login</button>
+    <!-- LEFT COLUMN (main content) -->
+    <main class="left" role="main">
+      <section class="section">
+        <h2 class="about-title">What you get</h2>
+        <ul class="bullets">
+          <li>Instant dropout predictions from simple student inputs</li>
+          <li>Dashboard charts for school, area and gender trends</li>
+          <li>No-code interface for teachers and administrators</li>
+        </ul>
+        <p style="color:#b4c2ff;margin-top:12px">Tip: Use the admin account to access full dashboards. Default: <strong>admin/admin</strong></p>
+      </section>
 
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
-    </form>
-</div>
+      <section class="features" aria-label="Features">
+        <article class="feature">
+          <div class="icon" aria-hidden="true">
+            <!-- lightning -->
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="url(#g1)"/>
+              <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#9f7aea"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div>
+            <h3>Fast predictions</h3>
+            <p>Upload CSVs or enter details manually to get instant dropout predictions with minimal setup.</p>
+          </div>
+        </article>
 
+        <article class="feature">
+          <div class="icon" aria-hidden="true">
+            <!-- chart -->
+            <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="10" width="3" height="11" rx="1" fill="#60a5fa"/><rect x="9" y="6" width="3" height="15" rx="1" fill="#9f7aea"/><rect x="15" y="2" width="3" height="19" rx="1" fill="#60a5fa"/></svg>
+          </div>
+          <div>
+            <h3>School & area insights</h3>
+            <p>Compare dropout risk across schools, area types and gender to identify patterns early.</p>
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="icon" aria-hidden="true">
+            <!-- shield -->
+            <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l6 3v5c0 5-3.58 9.74-6 12-2.42-2.26-6-7-6-12V5l6-3z" fill="#9f7aea"/></svg>
+          </div>
+          <div>
+            <h3>Teacher-friendly design</h3>
+            <p>Simple workflows built for teachers and administrators — no coding or ML expertise required.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <!-- RIGHT COLUMN (aligned top, medium width) -->
+    <aside class="right" role="complementary" aria-label="Information">
+      <div class="info">
+        <h3>Why this system?</h3>
+        <p>Many students drop out silently. This tool helps schools spot those students early so they can receive support, counselling and resources before it's too late.</p>
+      </div>
+
+      <div class="info">
+        <h3>What you can do</h3>
+        <ul style="margin:0;padding-left:18px;">
+          <li>Collect consistent student data across schools</li>
+          <li>Run dropout predictions in a few clicks</li>
+          <li>Identify high-risk groups for targeted interventions</li>
+          <li>Share visual summaries with management teams</li>
+        </ul>
+      </div>
+
+      <div class="info">
+        <h3>How prediction works</h3>
+        <p>The model analyzes factors like area type, gender, caste and standard to estimate dropout risk. It doesn’t replace teachers — it gives them an extra signal to focus attention where it matters most.</p>
+      </div>
+    </aside>
+
+    <div class="decor" aria-hidden="true"></div>
+  </div>
+
+  <!-- LOGIN MODAL (opens on demand) -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" role="document" aria-describedby="modalHint">
+      <button id="modalClose" style="position:absolute;right:8px;top:8px;border:none;background:transparent;font-size:20px;cursor:pointer">&times;</button>
+      <h2 id="modalTitle">Sign in to Student Dropout Analyzer</h2>
+      <p id="modalHint" style="color:#475569;margin-top:6px;margin-bottom:12px">Enter username and password to access dashboards and predictions.</p>
+
+      <form id="loginForm" method="POST" action="/login" autocomplete="on" novalidate>
+        <label for="username" style="display:block;color:#0b1220;font-weight:600;margin-bottom:6px">Username</label>
+        <input id="username" name="username" class="input" type="text" autocomplete="username" required placeholder="admin">
+
+        <label for="password" style="display:block;color:#0b1220;font-weight:600;margin-bottom:6px">Password</label>
+        <div style="position:relative">
+          <input id="password" name="password" class="input" type="password" autocomplete="current-password" required placeholder="••••••">
+          <button type="button" id="pwToggle" style="position:absolute;right:8px;top:6px;background:none;border:none;cursor:pointer;color:#0b1220;font-weight:600">Show</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <label style="font-size:13px;color:#0b1220;font-weight:600;display:flex;gap:8px;align-items:center">
+            <input type="checkbox" id="remember" name="remember" style="width:16px;height:16px"> Remember
+          </label>
+          <a href="/forgot-password" style="font-size:13px;color:#0b1220;text-decoration:none;font-weight:700">Forgot?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top:12px;padding:10px 30px;border-radius:8px">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+  // modal open/close
+  const openBtn = document.getElementById('openLoginBtn');
+  const backdrop = document.getElementById('modalBackdrop');
+  const closeBtn = document.getElementById('modalClose');
+  const pwToggle = document.getElementById('pwToggle');
+  const pwInput = document.getElementById('password');
+
+  function openModal(){ backdrop.style.display='flex'; document.body.style.overflow='hidden'; setTimeout(()=>document.getElementById('username').focus(),60); }
+  function closeModal(){ backdrop.style.display='none'; document.body.style.overflow=''; openBtn?.focus(); }
+
+  openBtn?.addEventListener('click', openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  backdrop?.addEventListener('click', (e)=>{ if(e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && backdrop.style.display==='flex') closeModal(); });
+
+  pwToggle?.addEventListener('click', ()=> {
+    const isPwd = pwInput.type === 'password';
+    pwInput.type = isPwd ? 'text' : 'password';
+    pwToggle.textContent = isPwd ? 'Hide' : 'Show';
+    if(isPwd) pwInput.focus();
+  });
+
+  // about scroll
+  const aboutBtn = document.getElementById('aboutBtn');
+  const about = document.getElementById('about');
+  aboutBtn?.addEventListener('click', ()=> {
+    if(!about) return;
+    const offset = 18;
+    const y = about.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    about.style.transition='background-color 0.6s ease';
+    const orig = about.style.backgroundColor;
+    about.style.backgroundColor='rgba(255,255,255,0.02)';
+    setTimeout(()=> about.style.backgroundColor = orig || 'transparent', 700);
+  });
+
+  // simple validation
+  document.getElementById('loginForm')?.addEventListener('submit', function(e){
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+    if(!u || !p){ e.preventDefault(); alert('Please enter both username and password.'); if(!u) document.getElementById('username').focus(); else document.getElementById('password').focus(); }
+  });
+</script>
 </body>
 </html>
