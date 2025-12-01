@@ -45,3 +45,4 @@ with open("model/model.pkl", "wb") as f:
     pickle.dump(model, f)
 
 print("✔ Model trained and saved as model/model.pkl")
+
