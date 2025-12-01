@@ -1,17 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Graph Dashboard</title>
+    <title>Graphs Dashboard</title>
+    <style>
+        body {
+            background: #0d1525;
+            font-family: Arial, sans-serif;
+            color: white;
+            padding: 30px;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: left;
+            margin-bottom: 30px;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            padding: 10px;
+        }
+
+        .card {
+            background: #111d2f;
+            padding: 20px;
+            border-radius: 14px;
+            box-shadow: 0px 4px 18px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .card img {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 25px;
+            background: #1d4ed8;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        .btn:hover {
+            background: #4361ee;
+        }
+    </style>
 </head>
 <body>
 
-<h2>Graphs</h2>
+<h1>📊 Graph Dashboard</h1>
 
-<img src="/static/graphs/school.png" width="400"><br><br>
-<img src="/static/graphs/area.png" width="400"><br><br>
-<img src="/static/graphs/gender.png" width="400"><br><br>
+<div class="grid">
 
-<a href="/dashboard">Back</a>
+    <div class="card">
+        <h2>School-wise Dropout Rate</h2>
+        <img src="{{ url_for('static', filename='graphs/school.png') }}" alt="School Chart">
+    </div>
+
+    <div class="card">
+        <h2>Area-wise Dropout Rate</h2>
+        <img src="{{ url_for('static', filename='graphs/area.png') }}" alt="Area Chart">
+    </div>
+
+    <div class="card">
+        <h2>Gender-wise Dropout Rate</h2>
+        <img src="{{ url_for('static', filename='graphs/gender.png') }}" alt="Gender Chart">
+    </div>
+
+    <div class="card">
+        <h2>Caste-wise Dropout Rate</h2>
+        <img src="{{ url_for('static', filename='graphs/caste.png') }}" alt="Caste Chart">
+    </div>
+
+</div>
+
+<a href="/dashboard" class="btn">Back</a>
 
 </body>
 </html>
