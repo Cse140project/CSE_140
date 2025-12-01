@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Upload Dataset • Student Dropout</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg1: #4facfe;
+      --bg2: #00f2fe;
+      --card: #ffffff;
+      --accent: #2575fc;
+      --muted: #666;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      color:#222;
+    }
+
+    .container{
+      width:100%;
+      max-width:720px;
+      padding:16px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.15);
+      padding:22px;
+      backdrop-filter: blur(4px);
+    }
+
+    h1{ margin:0 0 8px 0; font-size:20px; color:#111; }
+    p.lead{ margin:0 0 12px 0; color:var(--muted); }
+
+    label{
+      display:block;
+      font-size:13px;
+      margin-bottom:8px;
+      color:#333;
+      font-weight:700;
+    }
+
+    input[type="file"]{
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #e6e9ee;
+      background:#fbfdff;
+      font-size:14px;
+      margin-bottom:14px;
+    }
+
+    .small{ font-size:13px; color:var(--muted); margin-top:6px; }
+    .btn-row{ display:flex; gap:10px; margin-top:12px; align-items:center; justify-content:space-between; }
+
+    .btn {
+      padding:10px 14px;
+      border-radius:10px;
+      font-weight:700;
+      border:none;
+      cursor:pointer;
+    }
+
+    .btn-primary { background: linear-gradient(90deg,var(--accent), #1f6be0); color:white; box-shadow:0 8px 20px rgba(37,117,252,0.12); }
+    .btn-ghost { background:transparent; color:var(--accent); border:1px solid rgba(37,117,252,0.12); }
+
+    .status { margin-top:12px; padding:10px; border-radius:8px; font-weight:700; }
+    .status.success { background:#e6f8ef; color:#065f3b; border:1px solid rgba(6,95,59,0.08); }
+    .status.error { background:#fff2f2; color:#8b1e1e; border:1px solid rgba(139,30,30,0.06); }
+
+    .links { margin-top:14px; display:flex; gap:8px; justify-content:flex-end; }
+    .links a { text-decoration:none; }
+
+    @media (max-width:720px){
+      .container { padding:8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Upload Dataset</h1>
+      <p class="lead">Upload a CSV or Excel file to generate graphs and drive analysis. The uploaded file will be used by the Graph Dashboard.</p>
+
+      <!-- Status messages from server -->
+      {% if error %}
+        <div class="status error">{{ error }}</div>
+      {% endif %}
+      {% if message %}
+        <div class="status success">{{ message }}</div>
+      {% endif %}
+      {% if success %}
+        <div class="status success">{{ success }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('upload_dataset') }}" enctype="multipart/form-data">
+        <label for="file">Select file (CSV / XLS / XLSX)</label>
+        <input id="file" name="file" type="file" accept=".csv,.xls,.xlsx" required>
+
+        <div class="small">
+          <strong>Important:</strong> The dataset must include a column named <code>dropout</code> (values 0 or 1). Also include columns like <code>school</code>, <code>area</code>, <code>gender</code>, <code>caste</code>, <code>standard</code>.
+        </div>
+
+        <div class="btn-row">
+          <div>
+            <button class="btn btn-primary" type="submit">Upload & Generate Graphs</button>
+            <a href="{{ url_for('dashboard') }}"><button type="button" class="btn btn-ghost">Cancel</button></a>
+          </div>
+
+          <div class="links">
+            <a href="{{ url_for('graphs_pages') }}"><button type="button" class="btn btn-ghost">View Graphs</button></a>
+            <a href="{{ url_for('prediction_history') }}"><button type="button" class="btn btn-ghost">History</button></a>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</body>
+</html>
